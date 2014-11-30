@@ -5,7 +5,7 @@ MTLOC.curDir = cd;
 if isempty(sub); MTLOC.subID = input('\nPlease Enter Your Participant Code #: ', 's'); else MTLOC.subID = sub; end;
 if isempty(cbl); MTLOC.run =  input('\nPlease Enter The Run #: ', 's'); else  MTLOC.run = cbl; end;
 if isempty(acq); MTLOC.acq =  input('\nPlease Enter The Aquisition #: ', 's'); else  MTLOC.acq = acq; end;
-PATH = fullfile(MTLOC.curDir, sprintf('MTLOC_S%d_C%d_A%d.mat', MTLOC.subID, MTLOC.run, MTLOC.acq));
+PATH = fullfile(MTLOC.curDir, sprintf('DOG_S%d_R%d_A%d.mat', MTLOC.subID, MTLOC.run, MTLOC.acq));
 save(PATH);
 if ~exist(PATH);
     [Path, File] = uigetfile('*.mat', 'Select .MAT with RS');
@@ -25,8 +25,8 @@ clc
 
 %% Control Panel
 designs = [...
-    3 1 2 1 2 1 2 1 2 1 2 1 2 1 2 3;
-    3 2 1 2 1 2 1 2 1 2 1 2 1 2 1 3;
+    0 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 0;
+    0 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 0;
     ];
 
 triggerKey = KbName('t');
@@ -48,7 +48,7 @@ ifi = Screen('GetFlipInterval', w);
 
 % Scanning Parameters
 initFixation = 32;            % in seconds
-
+postFixation = initFixation;
 % Session Parameters
 blockDur = 20;               % should be a multiple of osc
 
@@ -103,16 +103,15 @@ if (differentsizes>0)
 end;
 
 %% Main Loop
-DrawFormattedText(w, 'Waiting for trigger...', 'center', 'center', 0);
+DrawFormattedText(w, 'Waiting for trigger...', 'center
 trigger(triggerKey);
-
 experimentStartTime = GetSecs;
 for blocks = 1:numBlocks
     timeLogger.block(blocks).startTime = GetSecs - experimentStartTime;
     timeLogger.block(blocks).condition = condition(blocks);
     
-    if condition(blocks) == 3 % fixation
-        fixationEndTime = GetSecs + blockDur;
+    if condition(blocks) == 0 % fixation
+        fixationEndTime = GetSecs + initFixation;
         
         fixate(w);
         while GetSecs <= fixationEndTime
@@ -201,21 +200,12 @@ end;
 MTLOC.ANSMAT = ANSMAT;
 save(PATH, 'MTLOC', 'timeLogger');
 
-cov1Filename = sprintf('MTLOC%02d_CBL%02d_Acq%02d_Cov1_motion.txt', sub, cbl, acq);
-cov2Filename = sprintf('MTLOC%02d_CBL%02d_Acq%02d_Cov2_flicker.txt', sub, cbl, acq);
-cov3Filename = sprintf('MTLOC%02d_CBL%02d_Acq%02d_Cov3_fixation.txt', sub, cbl, acq);
-
-for block = 1:numBlocks
-    temp = [round(timeLogger.block(block).startTime), round(timeLogger.block(block).endTime), round(timeLogger.block(block).length)];
-    
-    eval(sprintf('dlmwrite(cov%dFilename, temp, ''delimiter'', ''\t'', ''-append'');', timeLogger.block(block).condition));
-end;
-
 %% Shutdown Procedures
 ShowCursor;
 clear screen;
 
 function [w rect xc yc] = startPTB(screenNumber, oGl, color)
+
 if nargin == 0
     oGl = 0;
     color = [0 0 0];
@@ -238,7 +228,10 @@ DrawFormattedText(w, '+', 'center', 'center', [200 200 200]);
 Screen('TextSize', w, 25);
 Screen('Flip', w);
 
+
+
 function trigger(triggerKey)
+
 KbName('UnifyKeyNames');
 
 touch = 0;
