@@ -24,10 +24,14 @@ pause(3)
 clc
 
 %% Control Panel
-designs = [...
-    3 1 2 1 2 1 2 1 2 1 2 1 2 1 2 3;
-    3 2 1 2 1 2 1 2 1 2 1 2 1 2 1 3;
+designs = [...    % 1 = motion, 2 = flicker, 3 = fixation
+    3 1 2 1 2 1 2 1 2 3;
+    3 1 2 1 2 1 2 1 2 3;
+    3 1 2 1 2 1 2 1 2 3;
+    3 1 2 1 2 1 2 1 2 3;
     ];
+
+blockDur = 32;               % should be a multiple of osc (below)
 
 triggerKey = KbName('t');
 
@@ -48,12 +52,8 @@ ifi = Screen('GetFlipInterval', w);
 [tw, th] = Screen('WindowSize', w);
 
 % Scanning Parameters
-initFixation = 32;            % in seconds
-
-% Session Parameters
-blockDur = 16;               % should be a multiple of osc
-
 ibi = .5;                    % wait between blocks in seconds
+
 % (very rough) setting of oscillation frequency
 osc = .8;                    % Oscillating in seconds
 
@@ -201,7 +201,6 @@ for blocks = 1:numBlocks
 end;
 
 %% Logging & Cleanup
-MTLOC.ANSMAT = ANSMAT;
 save(PATH, 'MTLOC', 'timeLogger');
 
 cov1Filename = sprintf('MTLOC%02d_CBL%02d_Acq%02d_Cov1_motion.txt', sub, cbl, acq);
