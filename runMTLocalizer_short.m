@@ -1,11 +1,11 @@
-function [MTLOC] = runMTLocalizer(sub, cbl, acq)
+function [MTLOC] = runMTLocalizer_short(sub, cbl, acq)
 %% Start me up
 clc
 MTLOC.curDir = cd;
 if isempty(sub); MTLOC.subID = input('\nPlease Enter Your Participant Code #: ', 's'); else MTLOC.subID = sub; end;
 if isempty(cbl); MTLOC.run =  input('\nPlease Enter The Run #: ', 's'); else  MTLOC.run = cbl; end;
 if isempty(acq); MTLOC.acq =  input('\nPlease Enter The Aquisition #: ', 's'); else  MTLOC.acq = acq; end;
-PATH = fullfile(MTLOC.curDir, sprintf('DOG_S%d_R%d_A%d.mat', MTLOC.subID, MTLOC.run, MTLOC.acq));
+PATH = fullfile(MTLOC.curDir, sprintf('MTLOC_S%d_C%d_A%d.mat', MTLOC.subID, MTLOC.run, MTLOC.acq));
 save(PATH);
 if ~exist(PATH);
     [Path, File] = uigetfile('*.mat', 'Select .MAT with RS');
@@ -14,10 +14,10 @@ end
 load(PATH);
 
 pause(.8)
-disp('Dog Localizer')
+disp('MT Localizer')
 pause(.7)
-disp('  Version 0.50')
-disp('  Mar. 20, 2014')
+disp('  Version 1.00')
+disp('  Nov. 30, 2014')
 pause(.4)
 disp('Script Written by Sam Weiller')
 pause(3)
@@ -25,8 +25,8 @@ clc
 
 %% Control Panel
 designs = [...
-    0 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 0;
-    0 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 3 2 0;
+    3 1 2 1 2 1 2 1 2 1 2 1 2 1 2 3;
+    3 2 1 2 1 2 1 2 1 2 1 2 1 2 1 3;
     ];
 
 triggerKey = KbName('t');
@@ -35,6 +35,7 @@ numBlocks = size(designs, 2);
 condition = designs(cbl, :);
 
 %% PTB Setup
+screenNumber = 0;
 Screen('Preference', 'SkipSyncTests', 2);
 [w winRect xMid yMid] = startPTB(screenNumber, 1, [128 128 128]);
 HideCursor;
@@ -48,9 +49,9 @@ ifi = Screen('GetFlipInterval', w);
 
 % Scanning Parameters
 initFixation = 32;            % in seconds
-postFixation = initFixation;
+
 % Session Parameters
-blockDur = 20;               % should be a multiple of osc
+blockDur = 16;               % should be a multiple of osc
 
 ibi = .5;                    % wait between blocks in seconds
 % (very rough) setting of oscillation frequency
@@ -103,15 +104,18 @@ if (differentsizes>0)
 end;
 
 %% Main Loop
-DrawFormattedText(w, 'Waiting for trigger...', 'center
+Screen('TextSize', w, 20);
+DrawFormattedText(w, 'Waiting for trigger...', 'center', 'center', 0);
+Screen('Flip', w);
 trigger(triggerKey);
+
 experimentStartTime = GetSecs;
 for blocks = 1:numBlocks
     timeLogger.block(blocks).startTime = GetSecs - experimentStartTime;
     timeLogger.block(blocks).condition = condition(blocks);
     
-    if condition(blocks) == 0 % fixation
-        fixationEndTime = GetSecs + initFixation;
+    if condition(blocks) == 3 % fixation
+        fixationEndTime = GetSecs + blockDur;
         
         fixate(w);
         while GetSecs <= fixationEndTime
@@ -119,7 +123,7 @@ for blocks = 1:numBlocks
         end;
     elseif condition(blocks) == 1
         motionStartLog = GetSecs;
-        motionEnd = motionStartLog + motionLength;
+        motionEnd = motionStartLog + blockDur;
         vbl = Screen('Flip', w, 0, 1);
         % --------------
         % animation loop
@@ -161,7 +165,7 @@ for blocks = 1:numBlocks
         end;
     elseif condition(blocks) == 2
         motionStartLog = GetSecs;
-        motionEnd = motionStartLog + motionLength;
+        motionEnd = motionStartLog + blockDur;
         vbl = Screen('Flip', w, 0, 1);
         for i = 1:nframes
             if GetSecs <= motionEnd
@@ -200,12 +204,21 @@ end;
 MTLOC.ANSMAT = ANSMAT;
 save(PATH, 'MTLOC', 'timeLogger');
 
+cov1Filename = sprintf('MTLOC%02d_CBL%02d_Acq%02d_Cov1_motion.txt', sub, cbl, acq);
+cov2Filename = sprintf('MTLOC%02d_CBL%02d_Acq%02d_Cov2_flicker.txt', sub, cbl, acq);
+cov3Filename = sprintf('MTLOC%02d_CBL%02d_Acq%02d_Cov3_fixation.txt', sub, cbl, acq);
+
+for block = 1:numBlocks
+    temp = [round(timeLogger.block(block).startTime), round(timeLogger.block(block).endTime), round(timeLogger.block(block).length)];
+    
+    eval(sprintf('dlmwrite(cov%dFilename, temp, ''delimiter'', ''\t'', ''-append'');', timeLogger.block(block).condition));
+end;
+
 %% Shutdown Procedures
 ShowCursor;
 clear screen;
 
 function [w rect xc yc] = startPTB(screenNumber, oGl, color)
-
 if nargin == 0
     oGl = 0;
     color = [0 0 0];
@@ -228,10 +241,7 @@ DrawFormattedText(w, '+', 'center', 'center', [200 200 200]);
 Screen('TextSize', w, 25);
 Screen('Flip', w);
 
-
-
 function trigger(triggerKey)
-
 KbName('UnifyKeyNames');
 
 touch = 0;

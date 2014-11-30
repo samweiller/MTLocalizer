@@ -1,4 +1,4 @@
-function [MTLOC] = runMTLocalizer(sub, cbl, acq)
+function [MTLOC] = runMTLocalizer_long(sub, cbl, acq)
 %% Start me up
 clc
 MTLOC.curDir = cd;
@@ -14,10 +14,10 @@ end
 load(PATH);
 
 pause(.8)
-disp('Dog Localizer')
+disp('MT Localizer')
 pause(.7)
-disp('  Version 0.50')
-disp('  Mar. 20, 2014')
+disp('  Version 1.00')
+disp('  Nov. 30, 2014')
 pause(.4)
 disp('Script Written by Sam Weiller')
 pause(3)
@@ -35,6 +35,7 @@ numBlocks = size(designs, 2);
 condition = designs(cbl, :);
 
 %% PTB Setup
+screenNumber = 0;
 Screen('Preference', 'SkipSyncTests', 2);
 [w winRect xMid yMid] = startPTB(screenNumber, 1, [128 128 128]);
 HideCursor;
@@ -50,7 +51,7 @@ ifi = Screen('GetFlipInterval', w);
 initFixation = 32;            % in seconds
 
 % Session Parameters
-blockDur = 20;               % should be a multiple of osc
+blockDur = 16;               % should be a multiple of osc
 
 ibi = .5;                    % wait between blocks in seconds
 % (very rough) setting of oscillation frequency
@@ -103,7 +104,9 @@ if (differentsizes>0)
 end;
 
 %% Main Loop
+Screen('TextSize', w, 20);
 DrawFormattedText(w, 'Waiting for trigger...', 'center', 'center', 0);
+Screen('Flip', w);
 trigger(triggerKey);
 
 experimentStartTime = GetSecs;
@@ -120,7 +123,7 @@ for blocks = 1:numBlocks
         end;
     elseif condition(blocks) == 1
         motionStartLog = GetSecs;
-        motionEnd = motionStartLog + motionLength;
+        motionEnd = motionStartLog + blockDur;
         vbl = Screen('Flip', w, 0, 1);
         % --------------
         % animation loop
@@ -162,7 +165,7 @@ for blocks = 1:numBlocks
         end;
     elseif condition(blocks) == 2
         motionStartLog = GetSecs;
-        motionEnd = motionStartLog + motionLength;
+        motionEnd = motionStartLog + blockDur;
         vbl = Screen('Flip', w, 0, 1);
         for i = 1:nframes
             if GetSecs <= motionEnd
